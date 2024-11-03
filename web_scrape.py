@@ -1,4 +1,5 @@
 import requests
+import pandas as pd
 from datetime import datetime
 from bs4 import BeautifulSoup
 
@@ -59,7 +60,11 @@ class Fighter_Stats:
     self.groundpercent = get_percentage(groundlanded,groundattempt)
 
 
-def populate_events():
+def populate_events(saved_filename):
+
+  file_frame = pd.read_csv(saved_filename)
+  names_list = file_frame['name'].tolist()
+
   r = requests.get('http://ufcstats.com/statistics/events/completed?page=all')
   raw = BeautifulSoup(r.content, 'html.parser')
   raw = raw.find_all(class_= "b-statistics__table-content")
@@ -69,7 +74,7 @@ def populate_events():
   upcoming_date = datetime.strptime(raw[0].find('span', class_='b-statistics__date').get_text(strip=True), "%B %d, %Y")
   upcoming_event = Event(upcoming_name, upcoming_date, upcoming_link, [])
   
-  events_list = []
+  events = []
   unification_date = datetime(2000, 11, 1)
   for i in range(1, len(raw)):
     name = raw[i].find('a', class_='b-link b-link_style_black').get_text(strip=True)
@@ -78,10 +83,13 @@ def populate_events():
     if (date < unification_date):
       print("Unification Date Reached - Stopping")
       break
-    events_list.append(Event(name, date, event_link, get_fights(event_link)))
-    print(i, name, date.strftime("%d %b %Y"))
-  events_list.reverse()
-  return upcoming_event, events_list
+    if name not in names_list:
+      events.append(Event(name, date, event_link, get_fights(event_link)))
+      print("Found New Event:", name)
+    else:
+      print("Already Have", name)
+  events.reverse()
+  return upcoming_event, events
 
 
 def get_fights(event_link):
