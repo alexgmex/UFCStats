@@ -59,7 +59,7 @@ class Fighter_Stats:
     self.groundpercent = get_percentage(groundlanded,groundattempt)
 
 
-def populate_events(saved_filename):
+def get_events(saved_filename):
 
   file_frame = pd.read_csv(saved_filename)
   names_list = file_frame['name'].tolist()
@@ -74,7 +74,7 @@ def populate_events(saved_filename):
   upcoming_event = Event(upcoming_name, upcoming_date, upcoming_link, [])
   
   events = []
-  unification_date = datetime(2000, 11, 1)
+  unification_date = datetime(2002, 2, 1)
   for i in range(1, len(raw)):
     name = raw[i].find('a', class_='b-link b-link_style_black').get_text(strip=True)
     date = datetime.strptime(raw[i].find('span', class_='b-statistics__date').get_text(strip=True), "%B %d, %Y")
