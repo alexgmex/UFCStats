@@ -226,6 +226,6 @@ def get_stats(fight_link, was_dec):
 
 def get_percentage(landed, attempted):
   if(attempted):
-    return landed/attempted
+    return round(landed/attempted,4)
   else:
     return 0
