@@ -12,21 +12,20 @@ class Event:
 
 
 class Fight:
-  def __init__(self, result, fighter1, fighter1_link, fighter2, fighter2_link, weightclass, method, fight_link, both_stats):
-    self.result = result
-    self.fighter1 = fighter1
-    self.fighter1_link = fighter1_link
-    self.fighter1_stats = both_stats[0]
-    self.fighter2 = fighter2
-    self.fighter2_link = fighter2_link
-    self.fighter2_stats = both_stats[1]
-    self.weightclass = weightclass
+  def __init__(self, method, winner, weightclass, fight_link, both_stats):
     self.method = method
+    self.winner = winner
+    self.weightclass = weightclass
     self.fight_link = fight_link
+    self.fighter1_stats = both_stats[0]
+    self.fighter2_stats = both_stats[1]
 
 
 class Fighter_Stats:
-  def __init__(self, kd, siglanded, sigattempt, totallanded, totalattempt, tdlanded, tdattempt, subatt, rev, ctrl, headlanded, headattempt, bodylanded, bodyattempt, leglanded, legattempt, distancelanded, distanceattempt, clinchlanded, clinchattempt, groundlanded, groundattempt):
+  def __init__(self, name, link, score, kd, siglanded, sigattempt, totallanded, totalattempt, tdlanded, tdattempt, subatt, rev, ctrl, headlanded, headattempt, bodylanded, bodyattempt, leglanded, legattempt, distancelanded, distanceattempt, clinchlanded, clinchattempt, groundlanded, groundattempt):
+    self.name = name
+    self.link = link
+    self.score = score
     self.kd = kd
     self.siglanded = siglanded
     self.sigattempt = sigattempt
@@ -80,14 +79,17 @@ def populate_events(saved_filename):
     name = raw[i].find('a', class_='b-link b-link_style_black').get_text(strip=True)
     date = datetime.strptime(raw[i].find('span', class_='b-statistics__date').get_text(strip=True), "%B %d, %Y")
     event_link = raw[i].find('a', class_='b-link b-link_style_black')['href']
+
     if (date < unification_date):
       print("Unification Date Reached - Stopping")
       break
+
     if name not in names_list:
       events.append(Event(name, date, event_link, get_fights(event_link)))
       print("Found New Event:", name)
     else:
       print("Already Have", name)
+      
   events.reverse()
   return upcoming_event, events
 
@@ -100,27 +102,57 @@ def get_fights(event_link):
   fights_list = []
   for i in range(len(raw)):
     result = raw[i].find(class_="b-fight-details__table-col b-fight-details__table-col_style_align-top").find(class_="b-flag__text").get_text(strip=True)
-    fighters_info = raw[i].find(class_="b-fight-details__table-col l-page_align_left").find_all(class_="b-link b-link_style_black")
-    fighter1 = fighters_info[0].get_text(strip=True)
-    fighter1_link = fighters_info[0]['href']
-    fighter2 = fighters_info[1].get_text(strip=True)
-    fighter2_link = fighters_info[1]['href']
+    if (result == "win"):
+      method = raw[i].find_all(class_="b-fight-details__table-col l-page_align_left")[2].find(class_="b-fight-details__table-text").get_text(strip=True)
+      winner = raw[i].find(class_="b-fight-details__table-col l-page_align_left").find_all(class_="b-link b-link_style_black")[0].get_text(strip=True)
+    else:
+      method = "N/A"
+      winner = "N/A"
+    
     weightclass = raw[i].find_all(class_="b-fight-details__table-col l-page_align_left")[1].find(class_="b-fight-details__table-text").get_text(strip=True)
-    method = raw[i].find_all(class_="b-fight-details__table-col l-page_align_left")[2].find(class_="b-fight-details__table-text").get_text(strip=True)
     fight_link = raw[i]['data-link']
-    fights_list.append(Fight(result, fighter1, fighter1_link, fighter2, fighter2_link, weightclass, method, fight_link, get_stats(fight_link)))
+
+    was_dec = "DEC" in method
+    both_stats = get_stats(fight_link, was_dec)
+    if (was_dec):
+      lower_score = min(both_stats[0].score, both_stats[1].score)
+      higher_score = max(both_stats[0].score, both_stats[1].score)
+      if(winner == both_stats[0].name):
+        both_stats[0].score = higher_score
+        both_stats[1].score = lower_score
+      else:
+        both_stats[1].score = higher_score
+        both_stats[0].score = lower_score
+
+    fights_list.append(Fight(method, winner, weightclass, fight_link, both_stats))
   fights_list.reverse()
   return fights_list
 
 
-def get_stats(fight_link):
+def get_stats(fight_link, was_dec):
   r = requests.get(fight_link)
   raw = BeautifulSoup(r.content, 'html.parser')
-  raw = raw.find_all(class_ = "b-fight-details__table-body")
   
+  f1_score = 0
+  f2_score = 0
+  if was_dec:
+    f1_score += int(raw.find_all(class_="b-fight-details__text")[1].find_all(class_="b-fight-details__text-item")[0].get_text(strip=True)[-8:-6])
+    f1_score += int(raw.find_all(class_="b-fight-details__text")[1].find_all(class_="b-fight-details__text-item")[1].get_text(strip=True)[-8:-6])
+    f1_score += int(raw.find_all(class_="b-fight-details__text")[1].find_all(class_="b-fight-details__text-item")[2].get_text(strip=True)[-8:-6])
+    f2_score += int(raw.find_all(class_="b-fight-details__text")[1].find_all(class_="b-fight-details__text-item")[0].get_text(strip=True)[-3:-1])
+    f2_score += int(raw.find_all(class_="b-fight-details__text")[1].find_all(class_="b-fight-details__text-item")[1].get_text(strip=True)[-3:-1])
+    f2_score += int(raw.find_all(class_="b-fight-details__text")[1].find_all(class_="b-fight-details__text-item")[2].get_text(strip=True)[-3:-1])
+  
+  raw = raw.find_all(class_ = "b-fight-details__table-body")
   first_table = raw[0].find_all(class_ = "b-fight-details__table-text")
   second_table = raw[2].find_all(class_ = "b-fight-details__table-text")
   
+  f1_name = first_table[0].get_text(strip=True)
+  f2_name = first_table[1].get_text(strip=True)
+
+  f1_link = first_table[0].find(class_="b-link b-link_style_black")['href']
+  f2_link = first_table[1].find(class_="b-link b-link_style_black")['href']
+
   f1_kd = int(first_table[2].get_text(strip=True))
   f2_kd = int(first_table[3].get_text(strip=True))
 
@@ -187,8 +219,8 @@ def get_stats(fight_link):
   f1_groundattempt = int(second_table[16].get_text(strip=True).split(" ")[2])
   f2_groundattempt = int(second_table[17].get_text(strip=True).split(" ")[2])
 
-  f1 = Fighter_Stats(f1_kd, f1_siglanded, f1_sigattempt, f1_totallanded, f1_totalattempt, f1_tdlanded, f1_tdattempt, f1_subatt, f1_rev, f1_ctrl, f1_headlanded, f1_headattempt, f1_bodylanded, f1_bodyattempt, f1_leglanded, f1_legattempt, f1_distancelanded, f1_distanceattempt, f1_clinchlanded, f1_clinchattempt, f1_groundlanded, f1_groundattempt)
-  f2 = Fighter_Stats(f2_kd, f2_siglanded, f2_sigattempt, f2_totallanded, f2_totalattempt, f2_tdlanded, f2_tdattempt, f2_subatt, f2_rev, f2_ctrl, f2_headlanded, f2_headattempt, f2_bodylanded, f2_bodyattempt, f2_leglanded, f2_legattempt, f2_distancelanded, f2_distanceattempt, f2_clinchlanded, f2_clinchattempt, f2_groundlanded, f2_groundattempt)
+  f1 = Fighter_Stats(f1_name, f1_link, f1_score, f1_kd, f1_siglanded, f1_sigattempt, f1_totallanded, f1_totalattempt, f1_tdlanded, f1_tdattempt, f1_subatt, f1_rev, f1_ctrl, f1_headlanded, f1_headattempt, f1_bodylanded, f1_bodyattempt, f1_leglanded, f1_legattempt, f1_distancelanded, f1_distanceattempt, f1_clinchlanded, f1_clinchattempt, f1_groundlanded, f1_groundattempt)
+  f2 = Fighter_Stats(f2_name, f2_link, f2_score, f2_kd, f2_siglanded, f2_sigattempt, f2_totallanded, f2_totalattempt, f2_tdlanded, f2_tdattempt, f2_subatt, f2_rev, f2_ctrl, f2_headlanded, f2_headattempt, f2_bodylanded, f2_bodyattempt, f2_leglanded, f2_legattempt, f2_distancelanded, f2_distanceattempt, f2_clinchlanded, f2_clinchattempt, f2_groundlanded, f2_groundattempt)
   return [f1, f2]
 
 
