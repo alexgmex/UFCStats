@@ -74,14 +74,14 @@ def get_events(saved_filename):
   upcoming_event = Event(upcoming_name, upcoming_date, upcoming_link, [])
   
   events = []
-  unification_date = datetime(2002, 2, 1)
+  cutoff_date = datetime(2005, 1, 1)
   for i in range(1, len(raw)):
     name = raw[i].find('a', class_='b-link b-link_style_black').get_text(strip=True)
     date = datetime.strptime(raw[i].find('span', class_='b-statistics__date').get_text(strip=True), "%B %d, %Y")
     event_link = raw[i].find('a', class_='b-link b-link_style_black')['href']
 
-    if (date < unification_date):
-      print("Unification Date Reached - Stopping")
+    if (date < cutoff_date):
+      print("Cutoff Date Reached - Stopping")
       break
 
     if name not in names_list:
@@ -106,7 +106,7 @@ def get_fights(event_link):
       method = raw[i].find_all(class_="b-fight-details__table-col l-page_align_left")[2].find(class_="b-fight-details__table-text").get_text(strip=True)
       winner = raw[i].find(class_="b-fight-details__table-col l-page_align_left").find_all(class_="b-link b-link_style_black")[0].get_text(strip=True)
     else:
-      method = "N/A"
+      method = result
       winner = "N/A"
     
     weightclass = raw[i].find_all(class_="b-fight-details__table-col l-page_align_left")[1].find(class_="b-fight-details__table-text").get_text(strip=True)
