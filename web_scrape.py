@@ -107,7 +107,7 @@ def get_fights(event_link):
       winner = raw[i].find(class_="b-fight-details__table-col l-page_align_left").find_all(class_="b-link b-link_style_black")[0].get_text(strip=True)
     else:
       method = result
-      winner = "N/A"
+      winner = "none"
     
     weightclass = raw[i].find_all(class_="b-fight-details__table-col l-page_align_left")[1].find(class_="b-fight-details__table-text").get_text(strip=True)
     fight_link = raw[i]['data-link']
