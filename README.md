@@ -1,3 +1,3 @@
 # UFCStats
 
-pip install requests beautifulsoup4 pandas numpy
+pip install requests beautifulsoup4 pandas scipy numpy matplotlib
