@@ -1,11 +1,12 @@
+import copy
 import pandas as pd
 
 def construct_dataframe(events, saved_filename):
     master_list = []
     for i in range(len(events)):
         for j in range(len(events[i].fights)):
-            event_dict = events[i].__dict__.copy()
-            fight_dict = events[i].fights[j].__dict__.copy()
+            event_dict = copy.deepcopy(events[i].__dict__)
+            fight_dict = copy.deepcopy(events[i].fights[j].__dict__)
             fighter1_dict = {f'fighter1_{key}': value for key, value in events[i].fights[j].fighter1_stats.__dict__.items()}
             fighter2_dict = {f'fighter2_{key}': value for key, value in events[i].fights[j].fighter2_stats.__dict__.items()}
 
@@ -20,4 +21,5 @@ def construct_dataframe(events, saved_filename):
     master_frame = pd.concat([master_frame, file_frame], ignore_index=True)
 
     master_frame.to_csv('master.csv', index=False)
+    
     return master_frame

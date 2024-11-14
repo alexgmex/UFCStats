@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import percentileofscore
@@ -5,17 +6,17 @@ from scipy.stats import gaussian_kde
 
 
 def generate_data_dict(master_frame):
-    master_dict = master_frame.copy()
+    master_dict = copy.deepcopy(master_frame)
     master_dict = master_dict.drop(['name','date','event_link','method','winner','weightclass','fight_link','fighter1_name','fighter1_link','fighter1_score','fighter2_name','fighter2_link','fighter2_score'],axis=1)
     master_dict = master_dict.to_dict(orient="list")
 
     data_dict = {}
     for key in master_dict:
         key_real = key[9:]
-        if key_real not in data_dict:
-            data_dict[key_real] = master_dict[key]
+        if key_real in data_dict:
+            data_dict[key_real] = np.concatenate([data_dict[key_real], np.array(master_dict[key])])
         else:
-            data_dict[key_real] += master_dict[key]
+            data_dict[key_real] = np.array(master_dict[key])
 
     return data_dict
 

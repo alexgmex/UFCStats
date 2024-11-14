@@ -12,10 +12,11 @@ class Event:
 
 
 class Fight:
-  def __init__(self, method, winner, weightclass, fight_link, both_stats):
+  def __init__(self, method, winner, weightclass, duration, fight_link, both_stats):
     self.method = method
     self.winner = winner
     self.weightclass = weightclass
+    self.duration = duration
     self.fight_link = fight_link
     self.fighter1_stats = both_stats[0]
     self.fighter2_stats = both_stats[1]
@@ -76,20 +77,23 @@ def get_events(saved_filename):
   events = []
   cutoff_date = datetime(2005, 1, 1)
   for i in range(1, len(raw)):
-    name = raw[i].find('a', class_='b-link b-link_style_black').get_text(strip=True)
-    date = datetime.strptime(raw[i].find('span', class_='b-statistics__date').get_text(strip=True), "%B %d, %Y")
-    event_link = raw[i].find('a', class_='b-link b-link_style_black')['href']
+    try:
+      name = raw[i].find('a', class_='b-link b-link_style_black').get_text(strip=True)
+      date = datetime.strptime(raw[i].find('span', class_='b-statistics__date').get_text(strip=True), "%B %d, %Y")
+      event_link = raw[i].find('a', class_='b-link b-link_style_black')['href']
 
-    if (date < cutoff_date):
-      print("Cutoff Date Reached - Stopping")
+      if (date < cutoff_date):
+        print("Cutoff Date Reached - Stopping")
+        break
+
+      if name not in names_list:
+        events.append(Event(name, date, event_link, get_fights(event_link)))
+        print("Found New Event:", name)
+      else:
+        print("Already Have", name)
+    except:
+      print("Process interrupted! Saving progress...")
       break
-
-    if name not in names_list:
-      events.append(Event(name, date, event_link, get_fights(event_link)))
-      print("Found New Event:", name)
-    else:
-      print("Already Have", name)
-      
   events.reverse()
   return upcoming_event, events
 
@@ -111,6 +115,9 @@ def get_fights(event_link):
     
     weightclass = raw[i].find_all(class_="b-fight-details__table-col l-page_align_left")[1].find(class_="b-fight-details__table-text").get_text(strip=True)
     fight_link = raw[i]['data-link']
+    rounds = raw[i].find_all(class_="b-fight-details__table-col")[8].find(class_="b-fight-details__table-text").get_text(strip=True)
+    fin_time = raw[i].find_all(class_="b-fight-details__table-col")[9].find(class_="b-fight-details__table-text").get_text(strip=True)
+    duration = 300*(int(rounds) - 1) + 60*int(fin_time.split(":")[0])+int(fin_time.split(":")[1])
 
     was_dec = "DEC" in method
     both_stats = get_stats(fight_link, was_dec)
@@ -124,7 +131,7 @@ def get_fights(event_link):
         both_stats[1].score = higher_score
         both_stats[0].score = lower_score
 
-    fights_list.append(Fight(method, winner, weightclass, fight_link, both_stats))
+    fights_list.append(Fight(method, winner, weightclass, duration, fight_link, both_stats))
   fights_list.reverse()
   return fights_list
 
